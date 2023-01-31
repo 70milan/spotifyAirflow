@@ -1,49 +1,11 @@
 import requests
 import pandas as pd
-from pandasql import sqldf
 from urllib.parse import urlencode
-import webbrowser
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 import base64
-#import psycopg2
-#import json
-#from config import config
-#import matplotlib.pyplot as plt 
-
-client_id = "ca7fbe12e14546cb94ec1ec90c536bce"
-client_secret = "764ad9c13b9a475288eb7f5f394a2ed8"
-
-
-
-from flask import Flask, request, redirect
-
-app = Flask(__name__)
-
-@app.route("/")
-def get_code():
-    auth_headers = {
-        "client_id": client_id,
-        "response_type": "code",
-        "redirect_uri": "http://localhost:7777/callback",
-        "scope": "user-library-read"
-    }
-    url = "https://accounts.spotify.com/authorize?" + urlencode(auth_headers)
-    return redirect(url)
-
-
-@app.route("/callback")
-def callback():
-    code = request.args.get("code")
-    # Use the code to get an access token and refresh token
-    # ...
-    return "Code: {}".format(code)
-
-if __name__ == "__main__":
-    app.run(port=7777)
-
-
-print(code)
+import os
+import spotipy
+import spotipy.util as util
 
 
 
@@ -58,8 +20,9 @@ engine = create_engine('postgresql://postgres:3231@localhost:5432/de')
 
 """spotify api connection process"""
 
-client_id = "ca7fbe12e14546cb94ec1ec90c536bce"
-client_secret = "764ad9c13b9a475288eb7f5f394a2ed8"
+client_id = os.environ.get("SP_CLIENT_ID")
+client_secret = os.environ.get("SP_CLIENT_SECRET")
+
 
 limit = 20
 offset = 0
@@ -74,33 +37,13 @@ ids = []
 diff_scores = []
 album_list=[]
 
-auth_headers = {
-    "client_id": client_id,
-    "response_type": "code",
-    "redirect_uri": "http://localhost:7777/callback",
-    "scope": "user-library-read"
-}
+# Get the authorization token for the user
+username = 'x5raulz6ufun7mia2v0s6oqeq'
+scope = "user-library-read"
+redirect_uri = "http://localhost:7777/callback"
 
-webbrowser.open("https://accounts.spotify.com/authorize?" + urlencode(auth_headers))
+access_token = util.prompt_for_user_token(username, scope, client_id, client_secret, redirect_uri)
 
-code = str(input("enter your code here: "))
-
-encoded_credentials = base64.b64encode(client_id.encode() + b':' + client_secret.encode()).decode("utf-8")
-
-token_headers = {
-    "Authorization": "Basic " + encoded_credentials,
-    "Content-Type": "application/x-www-form-urlencoded"
-}
-
-token_data = {
-    "grant_type": "authorization_code",
-    "code": code,
-    "redirect_uri": "http://localhost:7777/callback"
-}
-
-r = requests.post("https://accounts.spotify.com/api/token", data=token_data, headers=token_headers)
-
-access_token = r.json()["access_token"]
 
 headers = {
 'Authorization': 'Bearer {}'.format(access_token)
@@ -113,7 +56,6 @@ total = response['total']
 print("Total 'liked songs' found: ", total)
 ##$ to save the json object ##
 
-
 def get_liked_songs(total,headers,all_items):
     for offset in range(0, total, 20):
         url = "https://api.spotify.com/v1/me/tracks?offset="+str(offset) + "&limit=20" 
@@ -122,6 +64,8 @@ def get_liked_songs(total,headers,all_items):
         all_items.extend(getter)
 
 get_liked_songs(total,headers,all_items)
+
+print("Processed all", total ,"songs !!")
 
 def get_all_items(all_items, headers, add, ids, song_list,album_list,artist_list,genre_list):
     for j in all_items:
@@ -176,7 +120,7 @@ def merge_and_load_to_postgres(ids, add, song_list, album_list, artist_list, dif
     cols = df2.columns.difference(df.columns)
     df_merge_1 = pd.concat([df, df2[cols]], join = 'outer',axis=1)
     df3 = pd.DataFrame(genre_list)
-    df3.columns=['genre1','genre2','genre3','genre4','genre5','genre6','genre7','genre8', 'genre9','genre10','genre11', 'genre12', 'genre13', 'genre14', 'genre15', 'genre16']
+    df3.columns=['genre1','genre2','genre3','genre4','genre5','genre6','genre7','genre8', 'genre9','genre10','genre11', 'genre12', 'genre13', 'genre14', 'genre15']
     df_merge_2 = pd.concat([df_merge_1, df3], join='outer', axis=1)
     engine.execute("drop table if exists master_sp.dim_details_1 cascade;")
     df_merge_2.to_sql('dim_details_1', engine, schema = 'master_sp', if_exists='replace', index=False)
@@ -186,6 +130,8 @@ def merge_and_load_to_postgres(ids, add, song_list, album_list, artist_list, dif
 
 merge_and_load_to_postgres(ids, add,song_list, album_list, artist_list, diff_scores, genre_list, engine)
 
+
+print("Done!!")
 
 
 
