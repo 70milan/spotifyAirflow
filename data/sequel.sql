@@ -1,19 +1,3 @@
-/*As soon as the program runs, 
-these queries should execute 
-in master_sp schema to create views*/
-
-/* count liked songs by year */
-
-
-drop view if exists master_sp.song_count;
-create view master_sp.song_count as
-select 
-distinct(left(date_added, 4)) as "year"
-,count(track_list) as song_ct
-from master_sp.dim_details_1
-group by "year" order by 1 desc;
-
-/* tracks by year */
 drop view if exists master_sp.tracks_yearwise;
 create view master_sp.tracks_yearwise as 
 select min("2018") as "2018",min("2019") as "2019",min("2020") as "2020",min("2021")as "2021", min("2022") as "2022", min("2023") as "2023" from(
@@ -45,4 +29,21 @@ case when	left(date_added, 4) = '2023' then artists_list else null end as "2023"
 from master_sp.dim_details_1 group by date_added, artists_list) as temp
 group by rn order by rn;
 
-/* artists by year */
+
+/*As soon as the program runs, 
+these queries should execute 
+in master_sp schema to create views
+
+count liked songs by year 
+
+
+drop view if exists master_sp.song_count;
+create view master_sp.song_count as
+select 
+distinct(left(date_added, 4)) as "year"
+,count(track_list) as song_ct
+from master_sp.dim_details_1
+group by "year" order by 1 desc;
+*/
+
+

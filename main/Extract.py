@@ -1,28 +1,10 @@
 import requests
-import pandas as pd
-from urllib.parse import urlencode
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-import base64
 import os
 import spotipy
 import spotipy.util as util
 
-
-
-'''
-CREATING ENGINE FOR POSTGRES DB CONNECTION
-
-('postgresql+psycopg2://user:password@hostname/database_name')
-'''
-engine = create_engine('postgresql://postgres:3231@localhost:5432/de')
-
-#postgres DB connection#
-
-"""spotify api connection process"""
-
 client_id = os.environ.get("SP_CLIENT_ID")
 client_secret = os.environ.get("SP_CLIENT_SECRET")
-
 
 limit = 20
 offset = 0
@@ -53,8 +35,7 @@ response = requests.get('https://api.spotify.com/v1/me/tracks', headers=headers)
 
 total = response['total'] 
  #total
-print("Total 'liked songs' found: ", total)
-##$ to save the json object ##
+print("Total 'liked songs' found:", total)
 
 def get_liked_songs(total,headers,all_items):
     for offset in range(0, total, 20):
@@ -65,7 +46,8 @@ def get_liked_songs(total,headers,all_items):
 
 get_liked_songs(total,headers,all_items)
 
-print("Processed all", total ,"songs !!")
+print("Processing all", total ,"songs !!")
+
 
 def get_all_items(all_items, headers, add, ids, song_list,album_list,artist_list,genre_list):
     for j in all_items:
@@ -111,29 +93,5 @@ def get_song_features(ids, headers, diff_scores):
 
 get_song_features(ids,headers,diff_scores)
 
-#gathering and loading the data
 
-def merge_and_load_to_postgres(ids, add, song_list, album_list, artist_list, diff_scores, genre_list, engine):
-    df = pd.DataFrame({"id": ids, "date_added":add,"track_list":song_list,"album_name" : album_list, "artists_list": artist_list})
-    df2 = pd.DataFrame(diff_scores)
-    df2.columns=['id','danceability','energy','key','loudness','mode','speechiness','acousticness', 'instrumentalness','liveness','valence', 'tempo']
-    cols = df2.columns.difference(df.columns)
-    df_merge_1 = pd.concat([df, df2[cols]], join = 'outer',axis=1)
-    df3 = pd.DataFrame(genre_list)
-    df3.columns=['genre1','genre2','genre3','genre4','genre5','genre6','genre7','genre8', 'genre9','genre10','genre11', 'genre12', 'genre13', 'genre14', 'genre15']
-    df_merge_2 = pd.concat([df_merge_1, df3], join='outer', axis=1)
-    engine.execute("drop table if exists master_sp.dim_details_1 cascade;")
-    df_merge_2.to_sql('dim_details_1', engine, schema = 'master_sp', if_exists='replace', index=False)
-    df.to_sql('dim_track_details', engine, schema = 'master_sp', if_exists='replace', index=False)
-    df2.to_sql('fact_track_features', engine, schema = 'master_sp', if_exists='replace', index=False)
-
-
-merge_and_load_to_postgres(ids, add,song_list, album_list, artist_list, diff_scores, genre_list, engine)
-
-
-print("Done!!")
-
-
-
-
-
+print("Extracted all", total ,"songs !!")
