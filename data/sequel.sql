@@ -13,7 +13,7 @@ case when	left(date_added, 4) = '2023' then track_list else null end as "2023"
 from master_sp.dim_details_1 group by date_added, track_list) as temp
 group by rn order by rn;
 
-/* artists by year */
+/* artists*/
 drop view if exists master_sp.artists_yearwise;
 create view master_sp.artists_yearwise as 
 select min("2018") as "2018",min("2019") as "2019",min("2020") as "2020",min("2021")as "2021", min("2022") as "2022",min("2023") as "2023" from(
@@ -44,6 +44,9 @@ distinct(left(date_added, 4)) as "year"
 ,count(track_list) as song_ct
 from master_sp.dim_details_1
 group by "year" order by 1 desc;
+
 */
+
+
 
 
