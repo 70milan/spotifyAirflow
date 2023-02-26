@@ -50,11 +50,16 @@ def dataframes_transformer(e):
         
     ###artist##
     #separating the artists and merging the df_artist to final-1 df
-    df_artists = pd.
+    df_artistsid = pd.DataFrame({"track_id": e.track_ids, "artist_id": e.artist_id })
+    df_artistsid = df_artistsid.explode('artist_id').reset_index(drop=True)
+    df_artistsid.index.name = 'artist_track_id'
+    
+
+    #artist_name
     df_artists = pd.DataFrame({"artist_name": e.artist_list })
     df_artists = df_artists['artist_name'].str.split(',', expand=True).add_prefix('col')
     df_artists.columns = [f"artist_{i}" for i in range(1, len(df_artists.columns) + 1)]
-    df_artists.insert(loc=0, column='track_id', value=e.track_ids) # Add the 'id' column to df_artists
+    df_artists.insert(loc=0, column='track_name', value=e.song_list) # Add the 'id' column to df_artists
     df_artists.insert(loc = 1, column= 'artist_id', value=e.artist_id)
 
     df_original_merged = pd.merge(df_original, df_artists, on='track_id') # Merge df and df_artists on 'id'
@@ -74,9 +79,9 @@ def dataframes_transformer(e):
 
     mega_merged_df = pd.merge(pd.merge(df_original_merged, df_features, on=['track_id']), df_genre, on=['track_id'])
 
-    return mega_merged_df, df_features, df_artists, df_genre, df_original_merged, df_date
+    return mega_merged_df, df_features, df_artists, df_genre, df_original_merged, df_date, df_artistsid
 
-mega_merged_df, df_features, df_artists, df_genre, df_original_merged, df_date = dataframes_transformer(e)
+mega_merged_df, df_features, df_artists, df_genre, df_original_merged, df_date, df_artistsid = dataframes_transformer(e)
 
 
 def load_to_psgdb(df_features, df_artists, df_genre, mega_merged_df, df_original_merged):
@@ -87,6 +92,10 @@ def load_to_psgdb(df_features, df_artists, df_genre, mega_merged_df, df_original
     #dim_everything_bloated_table
     mega_merged_df.to_sql('dim_details_large', engine, schema='master_sp', if_exists='replace', index=False)
     #fact_features
+    df_features.to_sql('fact_track_features', engine, schema='master_sp', if_exists='replace', index=False)
+    #dim_date
+    df_date.to_sql('dim_date', engine, schema='master_sp', if_exists='replace', index=False)
+    #fact_artist
     df_features.to_sql('fact_track_features', engine, schema='master_sp', if_exists='replace', index=False)
     #dim_track_artists
     df_artists.to_sql('dim_track_artists', engine, schema='master_sp', if_exists='replace', index=False)
@@ -112,7 +121,9 @@ print("Done!!")
 
 
 '''
-
+    df_artistsid = df_artistsid['artist_id'].apply(pd.Series)
+    df_artistsid = df_artistsid.rename(columns=lambda x: 'artist_id_{}'.format(x+1))
+    df_artistsid.insert(loc=0, column='track_list', value=e.song_list) # Add the 'id' column to df_artists
 
 df_original = pd.DataFrame({"track_id": e.track_ids, "date_added":e.add,"track_list":e.song_list,"album_name" : e.album_list})
 
