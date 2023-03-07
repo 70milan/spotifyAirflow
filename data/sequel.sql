@@ -4,7 +4,7 @@ ADD CONSTRAINT pk_dim_details_1_id
 PRIMARY KEY (track_id);
 
 
-
+/*
 drop view if exists master_sp.tracks_yearwise;
 create view master_sp.tracks_yearwise as
 select 
@@ -17,13 +17,13 @@ select
 from (
   select
     date_added,
-    row_number() over(partition by substring(date_added from 1 for 4) order by track_list) as rn,
-    case when substring(date_added from 1 for 4) = '2018' then track_list else null end as "2018",
-    case when substring(date_added from 1 for 4) = '2019' then track_list else null end as "2019",
-    case when substring(date_added from 1 for 4) = '2020' then track_list else null end as "2020",
-    case when substring(date_added from 1 for 4) = '2021' then track_list else null end as "2021",
-    case when substring(date_added from 1 for 4) = '2022' then track_list else null end as "2022",
-    case when substring(date_added from 1 for 4) = '2023' then track_list else null end as "2023"
+    row_number() over(partition by left(cast(date_added as text), 4) order by track_list) as rn,
+    case when left(cast(date_added as text), 4) = '2018' then track_list else null end as "2018",
+    case when left(cast(date_added as text), 4) = '2019' then track_list else null end as "2019",
+    case when left(cast(date_added as text), 4) = '2020' then track_list else null end as "2020",
+    case when left(cast(date_added as text), 4) = '2021' then track_list else null end as "2021",
+    case when left(cast(date_added as text), 4) = '2022' then track_list else null end as "2022",
+    case when left(cast(date_added as text), 4) = '2023' then track_list else null end as "2023"
   from master_sp.dim_details_large 
   group by date_added, track_list
 ) as temp
@@ -32,7 +32,8 @@ order by rn;
 
 
 
-/* artists
+
+ artists
 drop view if exists master_sp.artists_yearwise;
 create view master_sp.artists_yearwise as 
 select min("2018") as "2018",min("2019") as "2019",min("2020") as "2020"
